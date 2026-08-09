@@ -1,0 +1,43 @@
+# Netlify build configuration.
+#
+# `npm run build` runs `tsc -b && vite build`, so a type error fails the deploy
+# rather than shipping. Netlify installs devDependencies by default, which is
+# what TypeScript and Vite need.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 8 needs Node 20.19+ or 22.12+. Pinning avoids a surprise when
+  # Netlify moves its default.
+  NODE_VERSION = "22"
+
+# There is no client-side router — the whole app is one page — but a stray
+# deep link or a refresh on a hash URL should still land on the app instead of
+# Netlify's 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Vite fingerprints filenames in /assets, so those can be cached permanently.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html must never be cached, or a deploy leaves people on the old build
+# pointing at asset filenames that no longer exist.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"

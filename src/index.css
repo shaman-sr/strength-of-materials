@@ -1,0 +1,40 @@
+/* Minimal reset only. Every visual decision lives in styles/app.css.ts, which
+   is injected as a single <style> so the app owns its own cascade. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The app paints its own background; this only prevents a flash of the wrong
+   colour before the component mounts. */
+:root {
+  color-scheme: light dark;
+  background: #f7f8fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #0e1116;
+  }
+}
+
+:root[data-theme='light'] {
+  background: #f7f8fa;
+}
+
+:root[data-theme='dark'] {
+  background: #0e1116;
+}
