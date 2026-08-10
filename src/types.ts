@@ -1,127 +1,65 @@
-/* Shared shapes for the whole app.
-   The relation model comes from the project spec; `Input.mat` is the one
-   addition, and it is what lets a material preset drive a field. */
+/* The whole domain, in one file. Units are fixed everywhere: force in newtons,
+   length in millimetres, so stress comes out in N/mm² which is a megapascal. */
 
-/** A property an isotropic material carries, and that a relation input can bind to. */
-export type MatProp = 'E' | 'G' | 'nu' | 'alpha' | 'Sy' | 'sigma_c'
+/**
+ * The specimen's cross-section, which is all we need to turn force into stress.
+ *
+ * The two named shapes are conveniences — they only save you the arithmetic.
+ * `area` is the general case and takes any specimen at all: a tube, a hexagon,
+ * a moulded dogbone, anything you can measure or look up the area of.
+ */
+export type Section =
+  | { shape: 'circular'; diameter: number }
+  | { shape: 'rectangular'; width: number; thickness: number }
+  | { shape: 'area'; area: number }
 
-/** One line of a result: symbol, value, the symbolic form, and the same form
- *  with the user's numbers written into it. The `sub` line is the point of
- *  the app — it is what makes a result teach rather than just compute. */
-export type Output = {
-  /** "σ_max" */
-  sym: string
-  /** "MPa" */
-  unit: string
-  /** symbolic form: "M·y / I" */
-  expr: string
-  /** same form with numbers substituted: "2.0e7×100 / 6.667e7" */
-  sub: string
-  val: number
-  /** short qualifier, e.g. "at the outer surface" */
-  note?: string
-}
-
-export type Input = {
-  /** key used in the solve argument object, and in the vals store */
-  k: string
-  label: string
-  unit: string
-  def: number
-  /** When set, this field is a material constant: a selected preset supplies
-   *  its value and locks the field. Untagged fields are always user-typed. */
-  mat?: MatProp
-}
-
-export type Step = {
-  /** one plain sentence of physical reasoning */
-  t: string
-  /** the equation it produces; "—" renders the sentence alone */
-  eq: string
-}
-
-export type Relation = {
-  /** "C-03" */
-  id: string
+export type Specimen = {
   name: string
-  /** governing equation, shown while collapsed */
-  headline: string
-  /** one sentence on when you reach for it */
-  why: string
-  steps: Step[]
-  inputs: Input[]
-  solve: (v: Record<string, number>) => Output[]
+  /** Original gauge length, mm. Strain is measured against this. */
+  gaugeLength: number
+  section: Section
 }
 
-export type Chapter = {
-  key: string
-  tab: string
-  title: string
-  items: Relation[]
+/** One row of the test machine's output. */
+export type Reading = {
+  /** Applied force, N. */
+  force: number
+  /** Change in length, mm. */
+  elongation: number
 }
 
-/** A relation flattened with its chapter, for search and lookup. */
-export type IndexedRelation = Relation & {
-  ch: string
-  chTitle: string
+/** One row after normalising away the specimen's size. */
+export type Point = {
+  /** Engineering strain, a ratio (0.01 means 1%). */
+  strain: number
+  /** Engineering stress, MPa. */
+  stress: number
 }
 
-/** An isotropic material. Only E and ν are stored as elastic constants —
- *  G and K are derived, so the library can never contradict relation A-02. */
-export type Material = {
-  id: string
-  name: string
-  /** Young's modulus, MPa */
-  E: number
-  /** Poisson's ratio */
-  nu: number
-  /** coefficient of linear expansion, /°C */
-  alpha: number
-  /** yield strength, MPa */
-  Sy: number
-  /** crushing stress for Rankine–Gordon, MPa */
-  sigma_c: number
-  /** shown under the callout when the preset needs a caveat */
-  note?: string
+/** A straight-line fit through the elastic region. */
+export type Fit = {
+  /** Slope, MPa. Divide by 1000 for GPa. */
+  value: number
+  /** Coefficient of determination; 1 is a perfect straight line. */
+  rSquared: number
 }
 
-/** Raw field text, keyed `${relationId}.${inputKey}`.
- *  Stored as typed, not as a number: parsing on the way in would destroy
- *  mid-typing states like "1e" or "-" and turn a cleared field into 0. */
-export type Vals = Record<string, string>
-
-/** Field keys detached from the selected material by the per-field EDIT control. */
-export type UnlockedSet = string[]
-
-export type SavedCase = {
-  id: string
-  relationId: string
-  name: string
-  inputs: Record<string, number>
-  outputs: Output[]
-  materialId: string
-  createdAt: number
-}
-
-export type HistoryEntry = {
-  id: string
-  relationId: string
-  inputs: Record<string, number>
-  outputs: Output[]
-  materialId: string
-  at: number
-}
-
-export type Theme = 'light' | 'dark'
-
-export type UiState = {
-  chapter: string
-  openId: string | null
-  query: string
-  materialId: string
-  unlocked: UnlockedSet
-  theme: Theme
-  /** The saved calculation currently loaded, so edits can update it in place
-   *  instead of only ever piling up new copies. */
-  activeCaseId: string | null
+export type Analysis = {
+  points: Point[]
+  /** Original cross-sectional area, mm². Kept so the readings can be shown as
+      the forces they were, not only as the stresses they became. */
+  sectionArea: number
+  /** Young's modulus. Null when too few points land in the fitting window. */
+  modulus: Fit | null
+  /** Yield by the 0.2% offset method. Null when the curve never crosses it. */
+  yieldPoint: Point | null
+  /** Maximum stress reached. */
+  ultimate: Point
+  /** The last point recorded, taken as the moment of fracture. */
+  fracture: Point
+  /** Strain at fracture, as a percentage. */
+  elongationAtBreak: number
+  behaviour: 'ductile' | 'brittle'
+  /** Things the reader should know before trusting the numbers above. */
+  warnings: string[]
 }

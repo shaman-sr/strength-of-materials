@@ -1,11 +1,5 @@
-/* Minimal reset only. Every visual decision lives in styles/app.css.ts, which
-   is injected as a single <style> so the app owns its own cascade. */
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* Mantine supplies the reset, the theme and every component's styling. The only
+   thing left to say is that the page should fill the window. */
 
 html,
 body,
@@ -13,28 +7,23 @@ body,
   height: 100%;
 }
 
-body {
-  margin: 0;
-  -webkit-text-size-adjust: 100%;
+/* Chart colours. Mantine's own variables cover text and surfaces, but the curve
+   and its three marked points need a set chosen for the job: three hues that
+   stay apart under the common forms of colour blindness, stepped separately for
+   the dark surface rather than flipped. Each is also labelled on the chart, so
+   colour is never the only thing telling them apart. */
+.viz {
+  --viz-curve: var(--mantine-color-text);
+  --viz-surface: var(--mantine-color-body);
+  --viz-grid: var(--mantine-color-default-border);
+  --viz-axis: var(--mantine-color-dimmed);
+  --viz-yield: #2a78d6;
+  --viz-ultimate: #eb6834;
+  --viz-fracture: #1baf7a;
 }
 
-/* The app paints its own background; this only prevents a flash of the wrong
-   colour before the component mounts. */
-:root {
-  color-scheme: light dark;
-  background: #f7f8fa;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    background: #0e1116;
-  }
-}
-
-:root[data-theme='light'] {
-  background: #f7f8fa;
-}
-
-:root[data-theme='dark'] {
-  background: #0e1116;
+[data-mantine-color-scheme='dark'] .viz {
+  --viz-yield: #3987e5;
+  --viz-ultimate: #d95926;
+  --viz-fracture: #199e70;
 }

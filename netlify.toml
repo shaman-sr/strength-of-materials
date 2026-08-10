@@ -27,17 +27,47 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# index.html must never be cached, or a deploy leaves people on the old build
-# pointing at asset filenames that no longer exist.
+# The entry page must never be cached, or a deploy leaves people on the old
+# build pointing at asset filenames that no longer exist.
+#
+# Both paths are needed. Netlify matches these rules against the *requested*
+# path, and almost nobody requests "/index.html" — they request "/", which that
+# pattern does not match.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+    # The app has no backend, no analytics, no fonts or images from anywhere
+    # else, and never sends your test data off the machine — it is parsed in
+    # the browser and stays there. That makes a strict policy cheap to hold:
+    # everything the page needs it serves itself.
+    #
+    # Two directives are looser than the rest, for reasons:
+    #   style-src needs 'unsafe-inline' because Mantine and Recharts set styles
+    #     as element attributes, which counts as inline styling.
+    #   img-src allows data: because SVG marks and icons are inlined.
+    #
+    # frame-ancestors replaces X-Frame-Options, which is the older header for
+    # the same job and is ignored by current browsers when both are present.
+    #
+    # Kept on one line deliberately: a header value cannot contain newlines, so
+    # a wrapped string here depends on the host collapsing it for you.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
